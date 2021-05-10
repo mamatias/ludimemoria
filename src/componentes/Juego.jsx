@@ -8,7 +8,21 @@ import Ficha from './Ficha';
 
 const Juego = (props) => {
     // Hooks
-    const [juego, setJuego] = useState(props.juego);
+    const [juego, setJuego] = useState(
+        () => {
+            let auxObj;
+            let auxIdx;
+            for (let i = 0; i < props.juego.length; i++) {
+                auxIdx = Math.floor(Math.random() * (props.juego.length))
+                auxObj = props.juego[auxIdx];
+                props.juego[auxIdx] = props.juego[i];
+                props.juego[auxIdx].id = auxIdx;
+                props.juego[i] = auxObj;
+                props.juego[i].id = i;
+            }
+            return (props.juego);
+        }
+    );
     const [tiempo, setTiempo] = useState(0);
     const [fichasJugadas, setFichasJugadas] = useState(
         {
@@ -79,7 +93,20 @@ const Juego = (props) => {
     }
 
     const manejarReinicio = () => {
-        setJuego(props.juego);
+        setJuego(() => {
+            let auxObj;
+            let auxIdx;
+            for (let i = 0; i < props.juego.length; i++) {
+                auxIdx = Math.floor(Math.random() * (props.juego.length))
+                auxObj = props.juego[auxIdx];
+                props.juego[auxIdx] = props.juego[i];
+                props.juego[auxIdx].id = auxIdx;
+                props.juego[i] = auxObj;
+                props.juego[i].id = i;
+            }
+            return (props.juego);
+        }
+        );
         setTiempo(0);
         setFichasJugadas(
             {
@@ -110,7 +137,7 @@ const Juego = (props) => {
                                         key={ltr.id}
                                         estado={ltr.estado}
                                         handleClick={() => manejarClick(ltr.id)}
-                                        imgSize={200}
+                                        imgSize={124}
                                     />
                                 </WrapItem>)
                             // En paréntesis redondo en el arrow func. Permite evitar hacer el return
