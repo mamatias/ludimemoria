@@ -1,8 +1,11 @@
 import { RepeatIcon } from '@chakra-ui/icons';
-import { Flex, Heading, Box, Text } from '@chakra-ui/layout';
+import { Flex, Heading, Box, Text, Spacer } from '@chakra-ui/layout';
 import { WrapItem, Wrap } from '@chakra-ui/layout';
-import { Drawer, DrawerContent, DrawerHeader, DrawerFooter, DrawerBody } from '@chakra-ui/modal';
-import { Divider, Stat, StatLabel, StatNumber, Button, VStack, Slider, SliderTrack, SliderFilledTrack, SliderThumb, Center } from '@chakra-ui/react'
+import { Drawer, DrawerContent, DrawerHeader, DrawerFooter, DrawerBody, DrawerOverlay, DrawerCloseButton } from '@chakra-ui/modal';
+import { Divider, Stat, StatLabel, StatNumber, Button, VStack, useDisclosure } from '@chakra-ui/react';
+import { Slider, SliderTrack, SliderFilledTrack, SliderThumb, Center, IconButton } from '@chakra-ui/react';
+import { HamburgerIcon } from '@chakra-ui/icons';
+
 import React, { useEffect, useState } from 'react';
 import Ficha from './Ficha';
 
@@ -27,11 +30,11 @@ const Juego = (props) => {
     const [tamFicha, setTamFicha] = useState(
         () => {
             let tamFicha_tr = localStorage.getItem('ludiMem_tamFicha');
-            if ( tamFicha_tr === null ){
-                localStorage.setItem('ludiMem_tamFicha',100);
+            if (tamFicha_tr === null) {
+                localStorage.setItem('ludiMem_tamFicha', 100);
                 tamFicha_tr = 100;
             }
-            return(tamFicha_tr);
+            return (tamFicha_tr);
         }
     );
     const [fichasJugadas, setFichasJugadas] = useState(
@@ -52,6 +55,8 @@ const Juego = (props) => {
             200
         )
     );
+
+    const { isOpen, onOpen, onClose } = useDisclosure();
 
     // Funciones útiles
     const manejarClick = (id) => {
@@ -132,30 +137,17 @@ const Juego = (props) => {
     return (
         <Box>
             <Flex direction="column">
-                <Flex direction="row" justify="center">
-                    <Heading p="2" pl="150px" colorScheme="green" >
-                        LUDIMEMORIA &#9200; {Math.round(tiempo / 1000)}
+                <Flex direction="row" align="center">
+                    <Heading p="2" >
+                        LUDIMEMORIA
                     </Heading>
-                    <Center p={3} h="auto" w="220px" direction="column">
-                            <Slider
-                            defaultValue={tamFicha}
-                            min={80}
-                            max={220}
-                            step={10}
-                            onChange={
-                                (val) => setTamFicha(val)
-                            }
-                            onChangeEnd={
-                                (val) => localStorage.setItem('ludiMem_tamFicha',val)
-                            }
-                            >
-                                <SliderTrack bg="red.100">
-                                    <Box position="relative" right={10} />
-                                    <SliderFilledTrack bg="tomato" />
-                                </SliderTrack>
-                                <SliderThumb boxSize={3} />
-                            </Slider>
-                    </Center>
+                    <Heading p="2" pl="10px" >
+                        &#9200; {Math.round(tiempo / 1000)}
+                    </Heading>
+                    <Spacer />
+                    <IconButton mr="10px" colorScheme="gray" variant="solid" onClick={onOpen} >
+                        <HamburgerIcon />
+                    </IconButton>
                 </Flex>
                 <Wrap p="1" spacing="3px">
                     {
@@ -175,31 +167,71 @@ const Juego = (props) => {
                     }
                 </Wrap>
             </Flex>
-            <Drawer placement="right" isOpen={fichasJugadas.finalizado}>
-                <DrawerContent>
-                    <DrawerHeader>
-                        <Heading>
-                            &#128512;GANASTE
-                        </Heading>
-                    </DrawerHeader>
-                    <Divider />
-                    <DrawerBody>
-                        <Stat>
-                            <StatLabel>Felicitaciones, completaste el desafío en </StatLabel>
-                            <StatNumber>{Math.round(tiempo / 100) / 10} segundos.</StatNumber>
-                        </Stat>
-                    </DrawerBody>
-                    <DrawerFooter>
 
-                        <VStack spacing={4} align="stretch" >
-                            <Button leftIcon={<RepeatIcon />} colorScheme="teal" variant="solid" onClick={manejarReinicio} >
-                                Jugar nuevamente
+            <Drawer placement="right" isOpen={fichasJugadas.finalizado}>
+                <DrawerOverlay>
+                    <DrawerContent>
+                        <DrawerHeader>
+                            <Heading>
+                                &#128512;GANASTE
+                        </Heading>
+                        </DrawerHeader>
+                        <Divider />
+                        <DrawerBody>
+                            <Stat>
+                                <StatLabel>Felicitaciones, completaste el desafío en </StatLabel>
+                                <StatNumber>{Math.round(tiempo / 100) / 10} segundos.</StatNumber>
+                            </Stat>
+                        </DrawerBody>
+                        <DrawerFooter>
+
+                            <VStack spacing={4} align="stretch" >
+                                <Button leftIcon={<RepeatIcon />} colorScheme="teal" variant="solid" onClick={manejarReinicio} >
+                                    Jugar nuevamente
                             </Button>
-                            <Text>@mamatias</Text>
-                        </VStack>
-                    </DrawerFooter>
-                </DrawerContent>
+                                <Text>@mamatias</Text>
+                            </VStack>
+                        </DrawerFooter>
+                    </DrawerContent>
+                </DrawerOverlay>
             </Drawer>
+
+            <Drawer placement="right" isOpen={isOpen} onClose={onClose}>
+                <DrawerOverlay>
+                    <DrawerContent>
+                        <DrawerHeader>
+                            <Heading>Configuración</Heading>
+                        </DrawerHeader>
+                        <DrawerCloseButton />
+                        <Divider />
+                        <DrawerBody>
+                            <Text>Tamaño de ficha:</Text>
+                            <Center p={3} h="auto" w="auto" >
+                                <Slider
+                                    defaultValue={tamFicha}
+                                    min={80}
+                                    max={220}
+                                    step={10}
+                                    onChange={
+                                        (val) => setTamFicha(val)
+                                    }
+                                    onChangeEnd={
+                                        (val) => localStorage.setItem('ludiMem_tamFicha', val)
+                                    }
+                                >
+                                    <SliderTrack bg="red.100">
+                                        <Box position="relative" right={10} />
+                                        <SliderFilledTrack bg="tomato" />
+                                    </SliderTrack>
+                                    <SliderThumb boxSize={3} />
+                                </Slider>
+                            </Center>
+                        </DrawerBody>
+                        <DrawerFooter></DrawerFooter>
+                    </DrawerContent>
+                </DrawerOverlay>
+            </Drawer>
+
         </Box>
     )
 }
