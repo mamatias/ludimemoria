@@ -27,6 +27,7 @@ const Juego = (props) => {
         }
     );
     const [tiempo, setTiempo] = useState(0);
+    const [isContando, setContando] = useState(false);
     const [tamFicha, setTamFicha] = useState(
         () => {
             let tamFicha_tr = localStorage.getItem('ludiMem_tamFicha');
@@ -44,16 +45,22 @@ const Juego = (props) => {
             nFichasCompletadas: 0,
             nFichasTotal: juego.length,
             finalizado: false,
+            nClicks: 0,
         }
     );
 
     useEffect(
-        () => setTimeout(
-            () => {
-                if (!fichasJugadas.finalizado) { setTiempo(tiempo + 200) }
-            },
-            200
-        )
+        () => {
+            let intervalo = null;
+            if (isContando) {
+                intervalo = setInterval(
+                    () => {
+                        setTiempo(tiempo + 200)
+                    },
+                    200)
+            }
+            return () => clearInterval(intervalo);
+        }
     );
 
     const { isOpen, onOpen, onClose } = useDisclosure();
@@ -63,48 +70,65 @@ const Juego = (props) => {
         const juego_tr = JSON.parse(JSON.stringify(juego));
         const fichasJugadas_tr = JSON.parse(JSON.stringify(fichasJugadas));
 
-        // Primero, se debe ver si la ficha no está ya girada
+        // PROGRAMAR NUEVA LÓGICA MÁS DIRECTA PERO CON MÁS IFS
+
+        // A. ver si la ficha no está girada. y sumador de click
         if (!juego_tr[id].estado) {
-            // Segundo, ver si están las dos fichas jugadas. Solo ahi devuelven las fichas giradas
-            if (fichasJugadas_tr.id1 != null && fichasJugadas_tr.id2 != null) {
-                // Tercero, ver si corresponde a un MATCH o no
-                if (fichasJugadas_tr.letra1.toLowerCase() !== fichasJugadas_tr.letra2.toLowerCase()) {
-                    // no hay match
+            juego_tr[id].estado = true;
+
+            // A.1. ver si es el primer click. inicia timer.
+            if (fichasJugadas_tr.nClicks === 0) {
+                setContando(true)
+            }
+            fichasJugadas_tr.nClicks++;
+
+            // A.2. ver si están giradas las dos fichas (unmatch)
+            if (fichasJugadas_tr.id1 !== null && fichasJugadas_tr.id2 !== null) {
+                if (!juego_tr[fichasJugadas_tr.id1].limpia) {
+                    // devolverlas
                     juego_tr[fichasJugadas_tr.id1].estado = false;
                     juego_tr[fichasJugadas_tr.id2].estado = false;
-                    fichasJugadas_tr.nFichasCompletadas--;
-                    fichasJugadas_tr.nFichasCompletadas--;
+                    fichasJugadas_tr.id1 = null;
+                    fichasJugadas_tr.letra1 = null;
+                    fichasJugadas_tr.id2 = null;
+                    fichasJugadas_tr.letra2 = null;
                 }
-                fichasJugadas_tr.id1 = null;
-                fichasJugadas_tr.letra1 = null;
-                fichasJugadas_tr.id2 = null;
-                fichasJugadas_tr.letra2 = null;
             }
 
-            // Cuarto, manejar el click
-            juego_tr[id].estado = true;
-            fichasJugadas_tr.nFichasCompletadas++;
-            if (fichasJugadas_tr.id1 === null) {
-                // Se va a dar vuelta la primera ficha
+            // A.3. ver si es la primera ficha
+            if (fichasJugadas_tr.id1 === null || (fichasJugadas_tr.id1 !== null && fichasJugadas_tr.id2 !== null)) {
+                fichasJugadas_tr.id2 = null;
+                fichasJugadas_tr.letra2 = null;
                 fichasJugadas_tr.id1 = id;
                 fichasJugadas_tr.letra1 = juego_tr[id].letra;
             }
+
+            // A.4. Es la segunda ficha
             else {
-                // Se va a dar vuelta la segunda ficha
                 fichasJugadas_tr.id2 = id;
                 fichasJugadas_tr.letra2 = juego_tr[id].letra;
+
+                // A.4.1. Chequear si es match
+                if (fichasJugadas_tr.letra1.toLowerCase() === fichasJugadas_tr.letra2.toLowerCase()) {
+                    fichasJugadas_tr.nFichasCompletadas++;
+                    fichasJugadas_tr.nFichasCompletadas++;
+                    juego_tr[fichasJugadas_tr.id1].limpia = true;
+                    juego_tr[fichasJugadas_tr.id2].limpia = true;
+                }
+
+                // A.4.2. Chequear si ganó
+                if (fichasJugadas_tr.nFichasCompletadas === fichasJugadas_tr.nFichasTotal) {
+                    fichasJugadas_tr.finalizado = true;
+                    setContando(false);
+                }
             }
 
-            // Quinto, ver si ganó
-            if (fichasJugadas_tr.nFichasTotal === fichasJugadas_tr.nFichasCompletadas) {
-                // Como es la unica posibilidad, es obvio que ganó, no es necesario revisar la letra
-                fichasJugadas_tr.finalizado = true;
-            }
-
-            setFichasJugadas(fichasJugadas_tr);
-            setJuego(juego_tr);
-
+        } else {
+            // ya está girada, caso super raros y por ahora no se permite girar
         }
+
+        setFichasJugadas(fichasJugadas_tr);
+        setJuego(juego_tr);
     }
 
     const manejarReinicio = () => {
@@ -123,6 +147,7 @@ const Juego = (props) => {
         }
         );
         setTiempo(0);
+        setContando(false);
         setFichasJugadas(
             {
                 id1: null, letra1: null,
@@ -130,6 +155,7 @@ const Juego = (props) => {
                 nFichasCompletadas: 0,
                 nFichasTotal: juego.length,
                 finalizado: false,
+                nClicks: 0,
             }
         );
     }
@@ -137,14 +163,20 @@ const Juego = (props) => {
     return (
         <Box>
             <Flex direction="column">
-                <Flex direction="row" align="center">
-                    <Heading p="2" >
+                <Flex direction="row" align="center" mt="2px">
+                    <Heading p="2" size="sm">
                         LUDIMEMORIA
                     </Heading>
-                    <Heading p="2" pl="10px" >
+                    <Heading p="2" pl="10px" size="sm">
                         &#9200; {Math.round(tiempo / 1000)}
                     </Heading>
+                    <Heading p="2" pl="30px" size="sm">
+                        &#x1F446; {fichasJugadas.nClicks}
+                    </Heading>
                     <Spacer />
+                    <IconButton mr="10px" colorScheme="yellow" variant="solid" onClick={manejarReinicio} >
+                        <RepeatIcon />
+                    </IconButton>
                     <IconButton mr="10px" colorScheme="gray" variant="solid" onClick={onOpen} >
                         <HamburgerIcon />
                     </IconButton>
@@ -160,6 +192,7 @@ const Juego = (props) => {
                                         estado={ltr.estado}
                                         handleClick={() => manejarClick(ltr.id)}
                                         imgSize={tamFicha}
+                                        limpia={ltr.limpia}
                                     />
                                 </WrapItem>)
                             // En paréntesis redondo en el arrow func. Permite evitar hacer el return
@@ -181,15 +214,16 @@ const Juego = (props) => {
                             <Stat>
                                 <StatLabel>Felicitaciones, completaste el desafío en </StatLabel>
                                 <StatNumber>{Math.round(tiempo / 100) / 10} segundos.</StatNumber>
+                                <StatNumber color="gray.700">{fichasJugadas.nClicks} clicks.</StatNumber>
                             </Stat>
                         </DrawerBody>
-                        <DrawerFooter>
+                        <DrawerFooter >
 
-                            <VStack spacing={4} align="stretch" >
+                            <VStack spacing={4} alignItems="flex-end" >
                                 <Button leftIcon={<RepeatIcon />} colorScheme="teal" variant="solid" onClick={manejarReinicio} >
                                     Jugar nuevamente
-                            </Button>
-                                <Text>@mamatias</Text>
+                                </Button>
+                                <Text color="teal">@mamatias</Text>
                             </VStack>
                         </DrawerFooter>
                     </DrawerContent>
